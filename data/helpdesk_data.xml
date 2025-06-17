@@ -5,7 +5,6 @@
         <!-- Internal Helpdesk Team -->
         <record id="internal_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">Internal Support Team</field>
-            <field name="description">Team handling internal tickets from wavext.io domain</field>
             <field name="active">True</field>
         </record>
         
