@@ -1,67 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        
-        <!-- Teams Section (Unchanged) -->
+
+        <!-- Teams Section -->
         <record id="internal_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">Internal Support Team</field>
             <field name="active">True</field>
         </record>
-        
+
         <record id="external_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">External Support Team</field>
             <field name="active">True</field>
         </record>
-        
+
         <!-- Fixed Email Template -->
         <record id="ticket_assignment_email_template" model="mail.template">
             <field name="name">Helpdesk Ticket Assignment</field>
             <field name="model_id" ref="helpdesk_mgmt.model_helpdesk_ticket"/>
-            <field name="subject">New {{ 'Internal' if object.is_internal_ticket else 'External' }} Ticket: {{ object.name }}</field>
+            <field name="subject">New {% if object.is_internal_ticket %}Internal{% else %}External{% endif %} Ticket: {{ object.name }}</field>
             <field name="email_to">{{ object.team_id.user_id.email }}</field>
+            <field name="partner_to">{{ object.team_id.user_id.partner_id.id }}</field>
             <field name="email_format">html</field>
-            <field name="body_html"><![CDATA[
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #875A7B; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-        New Ticket Assignment
-    </h2>
-    
-    <p>Hello <strong>{{ object.team_id.user_id.name }}</strong>,</p>
-    
-    <p>You've been assigned a new <span style="color: #875A7B; font-weight: bold;">
-    {{ 'Internal' if object.is_internal_ticket else 'External' }}</span> ticket:</p>
-    
-    <div style="background: #f9f9f9; border-left: 4px solid #875A7B; padding: 15px; margin: 15px 0;">
-        <table style="width: 100%;">
-            <tr>
-                <td style="width: 30%; padding: 5px; font-weight: bold;">Ticket #:</td>
-                <td style="padding: 5px;">{{ object.name }}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px; font-weight: bold;">Customer:</td>
-                <td style="padding: 5px;">{{ object.partner_id.name or 'Guest' }}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px; font-weight: bold;">Priority:</td>
-                <td style="padding: 5px;">
-                    <span style="color: {% if object.priority == '3' %}#e74c3c{% elif object.priority == '2' %}#f39c12{% else %}#2ecc71{% endif %};">
-                        {{ object.priority }}
-                    </span>
-                </td>
-            </tr>
-        </table>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html" type="html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+    <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #875A7B;">
+        <h1 style="color: #875A7B; margin: 0; font-size: 24px;">New Ticket Assignment</h1>
     </div>
 
-    <div style="text-align: center; margin: 25px 0;">
-        <a href="{{ object.get_base_url() }}/web#id={{ object.id }}&model=helpdesk.ticket&view_type=form" 
-           style="background: #875A7B; color: white; padding: 12px 24px; text-decoration: none; 
-                  border-radius: 4px; display: inline-block; font-weight: bold;">
-            ➤ Open Ticket
-        </a>
+    <div style="padding: 20px 0;">
+        <p style="font-size: 16px; color: #333;">Hello <strong>{{ object.team_id.user_id.name }}</strong>,</p>
+
+        <p style="font-size: 16px; color: #333;">
+            You've been assigned a new
+            <span style="color: #875A7B; font-weight: bold;">
+                {% if object.is_internal_ticket %}Internal{% else %}External{% endif %}
+            </span>
+            helpdesk ticket:
+        </p>
+
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057; width: 30%;">Ticket Number:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057;">Subject:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.name or 'No subject provided' }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057;">Customer:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.partner_id.name or 'Guest User' }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057;">Email:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.partner_email or object.partner_id.email or 'No email provided' }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057;">Domain:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.email_domain or 'No domain' }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057;">Team:</td>
+                    <td style="padding: 8px 0; color: #333;">{{ object.team_id.name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #495057;">Priority:</td>
+                    <td style="padding: 8px 0;">
+                        <span style="
+                            {% if object.priority == '3' %}color: #dc3545; font-weight: bold;{% elif object.priority == '2' %}color: #fd7e14; font-weight: bold;{% else %}color: #28a745;{% endif %}
+                        ">
+                            {% if object.priority == '3' %}High{% elif object.priority == '2' %}Medium{% else %}Low{% endif %}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ object.get_base_url() }}/web#id={{ object.id }}&amp;model=helpdesk.ticket&amp;view_type=form"
+               style="
+                   background-color: #875A7B;
+                   color: white;
+                   padding: 12px 30px;
+                   text-decoration: none;
+                   border-radius: 6px;
+                   display: inline-block;
+                   font-weight: bold;
+                   font-size: 16px;
+                   box-shadow: 0 2px 4px rgba(135, 90, 123, 0.3);
+               ">
+                🎫 View Ticket Details
+            </a>
+        </div>
     </div>
 
-    <div style="font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 10px;">
-        <p>This is an automated notification. Please do not reply to this email.</p>
+    <div style="border-top: 1px solid #dee2e6; padding-top: 15px; margin-top: 30px;">
+        <p style="font-size: 12px; color: #6c757d; text-align: center; margin: 0;">
+            This is an automated notification from the Helpdesk System.<br/>
+            Please do not reply directly to this email.
+        </p>
     </div>
 </div>
             ]]></field>
