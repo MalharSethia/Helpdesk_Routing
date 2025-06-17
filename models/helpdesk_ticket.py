@@ -93,7 +93,7 @@ class HelpdeskTicket(models.Model):
                 _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
 
     def _notify_team_leader(self):
-        """Send notification to team leader with internal link"""
+        """Send notification to team leader using email template"""
         self.ensure_one()
         
         # Check if notifications are enabled
@@ -109,54 +109,52 @@ class HelpdeskTicket(models.Model):
             return
             
         team_leader = self.team_id.user_id
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        ticket_url = f"{base_url}/web#id={self.id}&model=helpdesk.ticket&view_type=form"
         
-        ticket_type = "Internal" if self.is_internal_ticket else "External"
-        
-        subject = f"New {ticket_type} Helpdesk Ticket: {self.name}"
-        
-        body = f"""
-        <p>Hello {team_leader.name},</p>
-        <p>A new <strong>{ticket_type.lower()}</strong> helpdesk ticket has been assigned to your team:</p>
-        <ul>
-            <li><strong>Ticket:</strong> {self.name}</li>
-            <li><strong>Subject:</strong> {self.name or 'No subject'}</li>
-            <li><strong>Partner:</strong> {self.partner_id.name if self.partner_id else 'Unknown'}</li>
-            <li><strong>Email:</strong> {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}</li>
-            <li><strong>Domain:</strong> {self.email_domain or 'No domain'}</li>
-            <li><strong>Team:</strong> {self.team_id.name}</li>
-            <li><strong>Priority:</strong> {dict(self._fields['priority'].selection)[self.priority] if hasattr(self, 'priority') else 'Normal'}</li>
-        </ul>
-        <p>
-            <a href="{ticket_url}" style="background-color: #875A7B; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
-                View Ticket
-            </a>
-        </p>
-        <p>Best regards,<br/>Helpdesk System</p>
-        """
-        
-        # Create mail message
+        # Send email notification using template - PROPER WAY
         try:
+            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template', raise_if_not_found=False)
+            if mail_template:
+                # Create mail record first, then send - this ensures proper tracking
+                mail_id = mail_template.send_mail(
+                    self.id,
+                    force_send=False,  # Don't force send immediately
+                    raise_exception=False
+                )
+                
+                # Now send the created mail record
+                if mail_id:
+                    mail_record = self.env['mail.mail'].browse(mail_id)
+                    mail_record.send()
+                    _logger.info(f"Sent email notification to {team_leader.email} for ticket {self.name}")
+                else:
+                    _logger.warning(f"Could not create mail record for ticket {self.name}")
+            else:
+                _logger.warning(f"Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
+        except Exception as e:
+            _logger.error(f"Could not send email notification for ticket {self.name}: {e}")
+        
+        # Send in-app notification (chatter message) - PLAIN TEXT VERSION
+        try:
+            ticket_type = "Internal" if self.is_internal_ticket else "External"
+            
+            # Use plain text message to avoid HTML rendering issues
+            plain_message = (
+                f"New {ticket_type.lower()} ticket assigned to your team.\n\n"
+                f"Ticket: {self.name}\n"
+                f"Customer: {self.partner_id.name if self.partner_id else 'Guest'}\n"
+                f"Email: {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}"
+            )
+            
             self.message_post(
-                body=body,
-                subject=subject,
+                body=plain_message,
+                subject=f"New {ticket_type} Ticket Assigned",
                 partner_ids=[team_leader.partner_id.id],
                 message_type='notification',
-                subtype_xmlid='mail.mt_comment'
+                subtype_xmlid='mail.mt_note'
             )
-            _logger.info(f"Sent notification to team leader {team_leader.name} for ticket {self.name}")
+            _logger.info(f"Sent in-app notification to team leader {team_leader.name} for ticket {self.name}")
         except Exception as e:
             _logger.warning(f"Could not send in-app notification for ticket {self.name}: {e}")
-        
-        # Also send email notification
-        try:
-            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
-            if mail_template:
-                mail_template.send_mail(self.id, force_send=True)
-                _logger.info(f"Sent email notification to {team_leader.email} for ticket {self.name}")
-        except Exception as e:
-            _logger.warning(f"Could not send email notification for ticket {self.name}: {e}")
 
     def write(self, vals):
         result = super().write(vals)
