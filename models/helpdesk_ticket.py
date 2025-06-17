@@ -121,7 +121,7 @@ class HelpdeskTicket(models.Model):
         <p>A new <strong>{ticket_type.lower()}</strong> helpdesk ticket has been assigned to your team:</p>
         <ul>
             <li><strong>Ticket:</strong> {self.name}</li>
-            <li><strong>Subject:</strong> {self.subject or 'No subject'}</li>
+            <li><strong>Subject:</strong> {self.name or 'No subject'}</li>
             <li><strong>Partner:</strong> {self.partner_id.name if self.partner_id else 'Unknown'}</li>
             <li><strong>Email:</strong> {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}</li>
             <li><strong>Domain:</strong> {self.email_domain or 'No domain'}</li>
