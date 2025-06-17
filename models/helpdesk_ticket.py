@@ -1,3 +1,4 @@
+# models/helpdesk_ticket.py
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 import re
@@ -92,7 +93,7 @@ class HelpdeskTicket(models.Model):
                 _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
 
     def _notify_team_leader(self):
-        """Send notification using OCA's built-in template"""
+        """Send notification to team leader with internal link"""
         self.ensure_one()
         
         # Check if notifications are enabled
@@ -107,22 +108,55 @@ class HelpdeskTicket(models.Model):
             _logger.warning(f"No team leader found for ticket {self.name}")
             return
             
+        team_leader = self.team_id.user_id
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        ticket_url = f"{base_url}/web#id={self.id}&model=helpdesk.ticket&view_type=form"
+        
+        ticket_type = "Internal" if self.is_internal_ticket else "External"
+        
+        subject = f"New {ticket_type} Helpdesk Ticket: {self.name}"
+        
+        body = f"""
+        <p>Hello {team_leader.name},</p>
+        <p>A new <strong>{ticket_type.lower()}</strong> helpdesk ticket has been assigned to your team:</p>
+        <ul>
+            <li><strong>Ticket:</strong> {self.name}</li>
+            <li><strong>Subject:</strong> {self.name or 'No subject'}</li>
+            <li><strong>Partner:</strong> {self.partner_id.name if self.partner_id else 'Unknown'}</li>
+            <li><strong>Email:</strong> {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}</li>
+            <li><strong>Domain:</strong> {self.email_domain or 'No domain'}</li>
+            <li><strong>Team:</strong> {self.team_id.name}</li>
+            <li><strong>Priority:</strong> {dict(self._fields['priority'].selection)[self.priority] if hasattr(self, 'priority') else 'Normal'}</li>
+        </ul>
+        <p>
+            <a href="{ticket_url}" style="background-color: #875A7B; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
+                View Ticket
+            </a>
+        </p>
+        <p>Best regards,<br/>Helpdesk System</p>
+        """
+        
+        # Create mail message
         try:
-            # Use OCA's built-in template
-            template = self.env.ref('helpdesk_mgmt.assignment_email_template')
-            template.send_mail(self.id, force_send=True)
-            _logger.info(f"Sent email notification via OCA template for ticket {self.name}")
-            
-        except Exception as e:
-            _logger.error(f"Failed to send OCA template notification: {str(e)}")
-            # Fallback to simple in-app notification
             self.message_post(
-                body=f"New ticket assigned (Could not send email)",
-                subject=f"New Ticket: {self.name}",
-                partner_ids=[self.team_id.user_id.partner_id.id],
+                body=body,
+                subject=subject,
+                partner_ids=[team_leader.partner_id.id],
                 message_type='notification',
                 subtype_xmlid='mail.mt_comment'
             )
+            _logger.info(f"Sent notification to team leader {team_leader.name} for ticket {self.name}")
+        except Exception as e:
+            _logger.warning(f"Could not send in-app notification for ticket {self.name}: {e}")
+        
+        # Also send email notification
+        try:
+            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
+            if mail_template:
+                mail_template.send_mail(self.id, force_send=True)
+                _logger.info(f"Sent email notification to {team_leader.email} for ticket {self.name}")
+        except Exception as e:
+            _logger.warning(f"Could not send email notification for ticket {self.name}: {e}")
 
     def write(self, vals):
         result = super().write(vals)
