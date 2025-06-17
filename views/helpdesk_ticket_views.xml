@@ -1,46 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    
-    <!-- Add fields to helpdesk ticket form view -->
+    <!-- Form View -->
     <record id="helpdesk_ticket_view_form_inherit" model="ir.ui.view">
         <field name="name">helpdesk.ticket.form.inherit</field>
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk_mgmt.ticket_view_form"/>
         <field name="arch" type="xml">
-            <field name="team_id" position="after">
+            <xpath expr="//field[@name='team_id']" position="after">
                 <field name="email_domain" readonly="1"/>
                 <field name="is_internal_ticket" readonly="1"/>
-            </field>
+            </xpath>
         </field>
     </record>
-    
-    <!-- Add fields to helpdesk ticket tree view -->
+
+    <!-- Tree View -->
     <record id="helpdesk_ticket_view_tree_inherit" model="ir.ui.view">
         <field name="name">helpdesk.ticket.tree.inherit</field>
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk_mgmt.ticket_view_tree"/>
         <field name="arch" type="xml">
-            <field name="team_id" position="after">
+            <xpath expr="//field[@name='team_id']" position="after">
                 <field name="is_internal_ticket" string="Internal"/>
                 <field name="email_domain"/>
-            </field>
+            </xpath>
         </field>
     </record>
-    
-    <!-- Add search filters -->
+
+    <!-- Search View -->
     <record id="helpdesk_ticket_view_search_inherit" model="ir.ui.view">
         <field name="name">helpdesk.ticket.search.inherit</field>
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk_mgmt.helpdesk_ticket_view_search"/>
         <field name="arch" type="xml">
-            <field name="team_id" position="after">
+            <xpath expr="//field[@name='team_id']" position="after">
                 <field name="email_domain"/>
                 <filter name="internal_tickets" string="Internal Tickets" 
                         domain="[('is_internal_ticket', '=', True)]"/>
                 <filter name="external_tickets" string="External Tickets" 
                         domain="[('is_internal_ticket', '=', False)]"/>
-            </field>
+            </xpath>
         </field>
     </record>
-    
 </odoo>
