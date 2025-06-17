@@ -3,14 +3,14 @@
     <data noupdate="1">
         
         <!-- Internal Helpdesk Team -->
-        <record id="internal_helpdesk_team" model="helpdesk.team">
+        <record id="internal_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">Internal Support Team</field>
             <field name="description">Team handling internal tickets from wavext.io domain</field>
             <field name="active">True</field>
         </record>
         
         <!-- External Helpdesk Team -->
-        <record id="external_helpdesk_team" model="helpdesk.team">
+        <record id="external_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">External Support Team</field>
             <field name="description">Team handling external tickets from all other domains</field>
             <field name="active">True</field>
