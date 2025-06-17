@@ -6,33 +6,33 @@
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk_mgmt.ticket_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='team_id']" position="after">
+            <xpath expr="//field[@name='name']" position="after">
                 <field name="email_domain" readonly="1"/>
                 <field name="is_internal_ticket" readonly="1"/>
             </xpath>
         </field>
     </record>
-
+    
     <!-- Tree View -->
     <record id="helpdesk_ticket_view_tree_inherit" model="ir.ui.view">
         <field name="name">helpdesk.ticket.tree.inherit</field>
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk_mgmt.ticket_view_tree"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='team_id']" position="after">
+            <xpath expr="//field[@name='user_id']" position="after">
                 <field name="is_internal_ticket" string="Internal"/>
                 <field name="email_domain"/>
             </xpath>
         </field>
     </record>
-
+    
     <!-- Search View -->
     <record id="helpdesk_ticket_view_search_inherit" model="ir.ui.view">
         <field name="name">helpdesk.ticket.search.inherit</field>
         <field name="model">helpdesk.ticket</field>
         <field name="inherit_id" ref="helpdesk_mgmt.helpdesk_ticket_view_search"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='team_id']" position="after">
+            <xpath expr="//field[@name='name']" position="after">
                 <field name="email_domain"/>
                 <filter name="internal_tickets" string="Internal Tickets" 
                         domain="[('is_internal_ticket', '=', True)]"/>
