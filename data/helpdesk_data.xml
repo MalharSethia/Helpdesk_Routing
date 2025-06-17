@@ -2,77 +2,69 @@
 <odoo>
     <data noupdate="1">
         
-        <!-- Internal Helpdesk Team -->
+        <!-- Teams Section (Unchanged) -->
         <record id="internal_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">Internal Support Team</field>
             <field name="active">True</field>
         </record>
         
-        <!-- External Helpdesk Team -->
         <record id="external_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">External Support Team</field>
             <field name="active">True</field>
         </record>
         
-        <!-- Email Template for Team Leader Notification -->
+        <!-- Fixed Email Template -->
         <record id="ticket_assignment_email_template" model="mail.template">
-            <field name="name">Helpdesk Ticket Assignment Notification</field>
+            <field name="name">Helpdesk Ticket Assignment</field>
             <field name="model_id" ref="helpdesk_mgmt.model_helpdesk_ticket"/>
-            <field name="subject">New {{ 'Internal' if object.is_internal_ticket else 'External' }} Helpdesk Ticket: {{ object.name }}</field>
+            <field name="subject">New {{ 'Internal' if object.is_internal_ticket else 'External' }} Ticket: {{ object.name }}</field>
             <field name="email_to">{{ object.team_id.user_id.email }}</field>
+            <field name="email_format">html</field>
             <field name="body_html"><![CDATA[
-<div style="font-family: Arial, sans-serif; max-width: 600px;">
-    <h2 style="color: #875A7B;">New Helpdesk Ticket Assigned</h2>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #875A7B; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        New Ticket Assignment
+    </h2>
     
-    <p>Hello {{ object.team_id.user_id.name }},</p>
+    <p>Hello <strong>{{ object.team_id.user_id.name }}</strong>,</p>
     
-    <p>A new <strong>{{ 'internal' if object.is_internal_ticket else 'external' }}</strong> helpdesk ticket has been assigned to your team.</p>
+    <p>You've been assigned a new <span style="color: #875A7B; font-weight: bold;">
+    {{ 'Internal' if object.is_internal_ticket else 'External' }}</span> ticket:</p>
     
-    <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #875A7B; margin: 20px 0;">
-        <table style="width: 100%; border-collapse: collapse;">
+    <div style="background: #f9f9f9; border-left: 4px solid #875A7B; padding: 15px; margin: 15px 0;">
+        <table style="width: 100%;">
             <tr>
-                <td style="padding: 5px; font-weight: bold;">Ticket:</td>
+                <td style="width: 30%; padding: 5px; font-weight: bold;">Ticket #:</td>
                 <td style="padding: 5px;">{{ object.name }}</td>
             </tr>
             <tr>
-                <td style="padding: 5px; font-weight: bold;">Subject:</td>
-                <td style="padding: 5px;">{{ object.subject or 'No subject' }}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px; font-weight: bold;">Partner:</td>
-                <td style="padding: 5px;">{{ object.partner_id.name or 'Unknown' }}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px; font-weight: bold;">Email:</td>
-                <td style="padding: 5px;">{{ object.partner_email or 'No email' }}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px; font-weight: bold;">Domain:</td>
-                <td style="padding: 5px;">{{ object.email_domain or 'No domain' }}</td>
-            </tr>
-            <tr>
-                <td style="padding: 5px; font-weight: bold;">Team:</td>
-                <td style="padding: 5px;">{{ object.team_id.name }}</td>
+                <td style="padding: 5px; font-weight: bold;">Customer:</td>
+                <td style="padding: 5px;">{{ object.partner_id.name or 'Guest' }}</td>
             </tr>
             <tr>
                 <td style="padding: 5px; font-weight: bold;">Priority:</td>
-                <td style="padding: 5px;">{{ dict(object._fields['priority'].selection)[object.priority] }}</td>
+                <td style="padding: 5px;">
+                    <span style="color: {% if object.priority == '3' %}#e74c3c{% elif object.priority == '2' %}#f39c12{% else %}#2ecc71{% endif %};">
+                        {{ object.priority }}
+                    </span>
+                </td>
             </tr>
         </table>
     </div>
-    
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ object.get_portal_url() }}" 
-           style="background-color: #875A7B; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            View Ticket
+
+    <div style="text-align: center; margin: 25px 0;">
+        <a href="{{ object.get_base_url() }}/web#id={{ object.id }}&model=helpdesk.ticket&view_type=form" 
+           style="background: #875A7B; color: white; padding: 12px 24px; text-decoration: none; 
+                  border-radius: 4px; display: inline-block; font-weight: bold;">
+            ➤ Open Ticket
         </a>
     </div>
-    
-    <p>Best regards,<br/>
-    Helpdesk System</p>
+
+    <div style="font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 10px;">
+        <p>This is an automated notification. Please do not reply to this email.</p>
+    </div>
 </div>
             ]]></field>
         </record>
-        
     </data>
 </odoo>
