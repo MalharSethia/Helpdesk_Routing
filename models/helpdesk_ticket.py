@@ -110,10 +110,21 @@ class HelpdeskTicket(models.Model):
             
         team_leader = self.team_id.user_id
         
-        # FORCE SET THE FROM ADDRESS - Get it from system parameters
+        # Get the FROM email address (proper email format)
         helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
-            'helpdesk_routing.from_email', 'helpdesk@test.com'
+            'helpdesk_routing.from_email', 'helpdesk@wavext.io'
         )
+        
+        # Get the SMTP server to use
+        smtp_server = self.env['ir.mail_server'].sudo().search([
+            ('smtp_host', '=', 'email-smtp.eu-west-1.amazonaws.com')
+        ], limit=1)
+        
+        if not smtp_server:
+            # Fallback to any available SMTP server
+            smtp_server = self.env['ir.mail_server'].sudo().search([
+                ('smtp_host', '!=', False)
+            ], limit=1)
         
         # Send email notification using template
         try:
@@ -122,11 +133,12 @@ class HelpdeskTicket(models.Model):
                 # Create mail record with forced FROM address
                 mail_values = mail_template.generate_email(self.id)
                 
-                # FORCE OVERRIDE the FROM address
+                # FORCE OVERRIDE the FROM address and SMTP server
                 mail_values.update({
                     'email_from': helpdesk_from_email,
                     'email_to': team_leader.email,
                     'reply_to': self.partner_email or (self.partner_id.email if self.partner_id else helpdesk_from_email),
+                    'mail_server_id': smtp_server.id if smtp_server else False,
                 })
                 
                 # DEBUG: Log the actual values being used
@@ -134,6 +146,8 @@ class HelpdeskTicket(models.Model):
                 _logger.info(f"DEBUG - email_from: {mail_values.get('email_from')}")
                 _logger.info(f"DEBUG - email_to: {mail_values.get('email_to')}")
                 _logger.info(f"DEBUG - reply_to: {mail_values.get('reply_to')}")
+                _logger.info(f"DEBUG - mail_server_id: {mail_values.get('mail_server_id')}")
+                _logger.info(f"DEBUG - smtp_server: {smtp_server.name if smtp_server else 'None'}")
                 
                 # Create and send the mail
                 mail_record = self.env['mail.mail'].create(mail_values)
