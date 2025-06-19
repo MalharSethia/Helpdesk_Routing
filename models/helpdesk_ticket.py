@@ -1,7 +1,6 @@
-# models/helpdesk_ticket.py
+# -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
-import re
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -64,12 +63,10 @@ class HelpdeskTicket(models.Model):
         """Automatically assign team based on email domain"""
         self.ensure_one()
         
-        # Only auto-assign if no team is already set
         if not self.team_id:
             team_to_assign = None
             
             if self.is_internal_ticket:
-                # Try to get team from config first, then fallback to data
                 internal_team_id = self.env['ir.config_parameter'].sudo().get_param(
                     'helpdesk_routing.internal_team_id'
                 )
@@ -78,7 +75,6 @@ class HelpdeskTicket(models.Model):
                 else:
                     team_to_assign = self.env.ref('helpdesk_routing.internal_helpdesk_team', raise_if_not_found=False)
             else:
-                # Try to get team from config first, then fallback to data
                 external_team_id = self.env['ir.config_parameter'].sudo().get_param(
                     'helpdesk_routing.external_team_id'
                 )
@@ -89,14 +85,12 @@ class HelpdeskTicket(models.Model):
             
             if team_to_assign and team_to_assign.exists():
                 self.team_id = team_to_assign.id
-                ticket_type = "internal" if self.is_internal_ticket else "external"
-                _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
+                _logger.info(f"Assigned ticket {self.name} to {'internal' if self.is_internal_ticket else 'external'} team")
 
     def _notify_team_leader(self):
-        """Send notification to team leader with forced sender address"""
+        """Send notification to team leader without customer email in reply_to"""
         self.ensure_one()
         
-        # Check if notifications are enabled
         if not self.env['ir.config_parameter'].sudo().get_param(
             'helpdesk_routing.enable_notifications', 'True'
         ).lower() == 'true':
@@ -108,47 +102,34 @@ class HelpdeskTicket(models.Model):
             
         team_leader = self.team_id.user_id
         
-        # Email notification with forced sender
         try:
             mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
             if mail_template:
-                # Get the fixed sender email from system parameters or use default
                 forced_sender = self.env['ir.config_parameter'].sudo().get_param(
                     'helpdesk_routing.notification_sender_email', 'msethia@wavext.io'
                 )
                 
-                # Create mail composition context to force sender
-                mail_values = mail_template.generate_email(self.id, fields=['email_from', 'email_to', 'subject', 'body_html', 'reply_to'])
-                
-                # Force the email_from to our desired sender
+                mail_values = mail_template.generate_email(
+                    self.id, 
+                    fields=['email_from', 'email_to', 'subject', 'body_html']
+                )
                 mail_values['email_from'] = forced_sender
                 
-                # Ensure reply_to is set correctly (customer's email for easy replies)
-                customer_email = self.partner_email or (self.partner_id.email if self.partner_id else None)
-                if customer_email:
-                    mail_values['reply_to'] = customer_email
-                else:
-                    mail_values['reply_to'] = forced_sender
-                
-                # Send the email with forced values
                 mail = self.env['mail.mail'].create(mail_values)
                 mail.send()
                 
-                _logger.info(f"Sent email notification from {forced_sender} to {team_leader.email} for ticket {self.name}")
+                _logger.info(f"Sent notification from {forced_sender} to team leader")
             else:
-                _logger.warning("Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
+                _logger.warning("Email template not found")
         except Exception as e:
-            _logger.error(f"Could not send email notification for ticket {self.name}: {e}")
+            _logger.error(f"Notification failed: {str(e)}")
         
-        # In-app notification
         self._send_in_app_notification(team_leader)
 
     def _send_in_app_notification(self, team_leader):
-        """Standalone in-app notification method"""
+        """In-app notification with customer details (unchanged)"""
         try:
             ticket_type = "Internal" if self.is_internal_ticket else "External"
-            
-            # Include customer info in the notification
             customer_info = f"Customer: {self.partner_id.name if self.partner_id else 'Guest'}"
             email_info = f"Email: {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}"
             
@@ -167,17 +148,15 @@ class HelpdeskTicket(models.Model):
                 message_type='notification',
                 subtype_xmlid='mail.mt_note'
             )
-            _logger.info(f"Sent in-app notification to team leader {team_leader.name} for ticket {self.name}")
         except Exception as e:
-            _logger.warning(f"Could not send in-app notification for ticket {self.name}: {e}")
+            _logger.warning(f"In-app notification failed: {str(e)}")
 
     def write(self, vals):
         result = super().write(vals)
         
-        # If partner_email or partner_id is updated, reprocess routing if needed
         if ('partner_email' in vals or 'partner_id' in vals) and not vals.get('routing_processed'):
             for ticket in self:
-                if not ticket.team_id:  # Only reassign if no team is set
+                if not ticket.team_id:
                     ticket._auto_assign_team()
                     ticket._notify_team_leader()
                     ticket.routing_processed = True
