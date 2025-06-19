@@ -130,7 +130,7 @@ class HelpdeskTicket(models.Model):
                      team_leader.name, team_leader.id)
 
         try:
-            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
+            mail_template = self.env.ref('Helpdesk_Routing.ticket_assignment_email_template')
             if mail_template:
                 forced_sender = self.env['ir.config_parameter'].sudo().get_param(
                     'helpdesk_routing.notification_sender_email', 'msethia@wavext.io'
