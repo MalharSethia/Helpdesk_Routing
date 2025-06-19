@@ -1,5 +1,5 @@
 {
-    'name': 'Helpdesk Ticket Routing',
+    'name': 'Helpdesk Routing',
     'version': '17.0.1.0.0',
     'category': 'Services/Helpdesk',
     'summary': 'Route helpdesk tickets based on email domain and notify team leaders',
