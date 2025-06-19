@@ -2,17 +2,6 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- System Parameters -->
-        <record id="notification_sender_email_param" model="ir.config_parameter">
-            <field name="key">helpdesk_routing.notification_sender_email</field>
-            <field name="value">msethia@wavext.io</field>
-        </record>
-
-        <record id="enable_notifications_param" model="ir.config_parameter">
-            <field name="key">helpdesk_routing.enable_notifications</field>
-            <field name="value">True</field>
-        </record>
-
         <!-- Teams Section -->
         <record id="internal_helpdesk_team" model="helpdesk.ticket.team">
             <field name="name">Internal Support Team</field>
@@ -29,14 +18,8 @@
             <field name="name">Helpdesk Ticket Assignment</field>
             <field name="model_id" ref="helpdesk_mgmt.model_helpdesk_ticket"/>
             <field name="subject">New {% if object.is_internal_ticket %}Internal{% else %}External{% endif %} Ticket: {{ object.name }}</field>
-            
-            <!-- This will be overridden by the Python code, but kept for reference -->
-            <field name="email_from">msethia@wavext.io</field>
-            
-            <!-- Reply-to will be set by Python code based on customer email -->
-            <field name="reply_to">msethia@wavext.io</field>
-            
             <field name="email_to">{{ object.team_id.user_id.email }}</field>
+            <field name="partner_to">{{ object.team_id.user_id.partner_id.id }}</field>
             <field name="email_format">html</field>
             <field name="auto_delete" eval="True"/>
             <field name="body_html" type="html"><![CDATA[
