@@ -105,8 +105,7 @@ class HelpdeskTicket(models.Model):
         try:
             mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
             if mail_template:
-                forced_sender = self.env['ir.config_parameter'].sudo().get_param(
-                    'helpdesk_routing.notification_sender_email', 'msethia@wavext.io'
+                forced_sender = 'msethia@wavext.io'
                 )
                 
                 mail_values = mail_template.generate_email(
