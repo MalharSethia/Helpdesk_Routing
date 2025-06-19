@@ -1,50 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="res_config_settings_view_form_inherit" model="ir.ui.view">
-        <field name="name">res.config.settings.form.inherit</field>
-        <field name="model">res.config.settings</field>
-        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//form" position="inside">
-                <div class="app_settings_block" data-string="Helpdesk Routing" data-key="helpdesk_routing">
-                    <h2>Helpdesk Routing Settings</h2>
-                    <div class="row mt16 o_settings_container">
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <label for="internal_domains"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <field name="internal_domains" placeholder="wavext.io, company.com"/>
-                                <div class="text-muted">
-                                    Comma-separated list of internal email domains
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <label for="internal_team_id"/>
-                            </div>
-                            <div class="o_setting_right_pane">
+    <data>
+        <record id="res_config_settings_view_form" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.inherit.helpdesk.routing</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="5"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form[1]" position="inside">
+                    <app name="helpdesk_routing" string="Helpdesk Routing">
+                        <block title="Team Assignment" name="team_assignment_setting">
+                            <setting string="Internal Email Domains" help="Configure which email domains are considered internal">
+                                <field name="internal_domains" placeholder="wavext.io,company.com"/>
+                            </setting>
+                            <setting string="Internal Team">
                                 <field name="internal_team_id"/>
-                                <div class="text-muted">
-                                    Team that will handle internal tickets
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <label for="external_team_id"/>
-                            </div>
-                            <div class="o_setting_right_pane">
+                            </setting>
+                            <setting string="External Team">
                                 <field name="external_team_id"/>
-                                <div class="text-muted">
-                                    Team that will handle external tickets
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </xpath>
-        </field>
-    </record>
+                            </setting>
+                        </block>
+                        <block title="Email Notifications" name="email_notifications_setting">
+                            <setting string="Enable Email Notifications" help="Send email notifications to team leaders when tickets are assigned">
+                                <field name="enable_notifications"/>
+                            </setting>
+                            <setting string="Notification Sender Email" help="Email address used as sender for helpdesk notifications" attrs="{'invisible': [('enable_notifications', '=', False)]}">
+                                <field name="notification_sender_email" placeholder="helpdesk@yourcompany.com"/>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+    </data>
 </odoo>
