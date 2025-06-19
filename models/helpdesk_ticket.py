@@ -76,7 +76,7 @@ class HelpdeskTicket(models.Model):
                 if internal_team_id:
                     team_to_assign = self.env['helpdesk.ticket.team'].browse(int(internal_team_id))
                 else:
-                    team_to_assign = self.env.ref('Helpdesk_Routing.internal_helpdesk_team', raise_if_not_found=False)
+                    team_to_assign = self.env.ref('helpdesk_routing.internal_helpdesk_team', raise_if_not_found=False)
             else:
                 # Try to get team from config first, then fallback to data
                 external_team_id = self.env['ir.config_parameter'].sudo().get_param(
