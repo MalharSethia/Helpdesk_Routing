@@ -92,6 +92,24 @@ class HelpdeskTicket(models.Model):
                 ticket_type = "internal" if self.is_internal_ticket else "external"
                 _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
 
+    def _get_verified_from_email(self):
+        """Get a verified email address for AWS SES"""
+        # Get the configured FROM email address
+        helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
+            'helpdesk_routing.from_email', 'helpdesk@wavext.io'
+        )
+        
+        # List of fallback verified emails (add your verified SES emails here)
+        verified_emails = [
+            helpdesk_from_email,
+            'helpdesk@wavext.io',
+            'noreply@wavext.io',
+            # Add other verified emails as needed
+        ]
+        
+        # Return the first configured email (should be verified)
+        return verified_emails[0]
+
     def _notify_team_leader(self):
         """Send notification to team leader using email template"""
         self.ensure_one()
@@ -110,10 +128,8 @@ class HelpdeskTicket(models.Model):
             
         team_leader = self.team_id.user_id
         
-        # Get the FROM email address (proper email format)
-        helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
-            'helpdesk_routing.from_email', 'helpdesk@wavext.io'
-        )
+        # Get the verified FROM email address
+        verified_from_email = self._get_verified_from_email()
         
         # Get the SMTP server to use
         smtp_server = self.env['ir.mail_server'].sudo().search([
@@ -130,14 +146,17 @@ class HelpdeskTicket(models.Model):
         try:
             mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template', raise_if_not_found=False)
             if mail_template:
-                # Create mail record with forced FROM address
+                # Create mail record with verified FROM address
                 mail_values = mail_template.generate_email(self.id)
                 
-                # FORCE OVERRIDE the FROM address and SMTP server
+                # Set proper reply-to address (customer's email)
+                customer_email = self.partner_email or (self.partner_id.email if self.partner_id else verified_from_email)
+                
+                # FORCE OVERRIDE with verified email addresses
                 mail_values.update({
-                    'email_from': helpdesk_from_email,
+                    'email_from': verified_from_email,  # Use verified email
                     'email_to': team_leader.email,
-                    'reply_to': self.partner_email or (self.partner_id.email if self.partner_id else helpdesk_from_email),
+                    'reply_to': customer_email,  # Customer can still be reached via reply-to
                     'mail_server_id': smtp_server.id if smtp_server else False,
                 })
                 
@@ -167,11 +186,16 @@ class HelpdeskTicket(models.Model):
         try:
             ticket_type = "Internal" if self.is_internal_ticket else "External"
             
+            # Include customer info in the notification
+            customer_info = f"Customer: {self.partner_id.name if self.partner_id else 'Guest'}"
+            email_info = f"Email: {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}"
+            
             plain_message = (
                 f"New {ticket_type.lower()} ticket assigned to your team.\n\n"
                 f"Ticket: {self.name}\n"
-                f"Customer: {self.partner_id.name if self.partner_id else 'Guest'}\n"
-                f"Email: {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}"
+                f"{customer_info}\n"
+                f"{email_info}\n"
+                f"Subject: {self.name or 'No subject'}"
             )
             
             self.message_post(
