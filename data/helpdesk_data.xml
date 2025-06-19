@@ -20,7 +20,7 @@
             <field name="subject">New {% if object.is_internal_ticket %}Internal{% else %}External{% endif %} Ticket: {{ object.name }}</field>
             
             <!-- CRITICAL FIX: Set the FROM address to your helpdesk email -->
-            <field name="email_from">msethia@wavext.io</field>
+            <field name="email_from">email-smtp.eu-west-1.amazonaws.com</field>
             
             <!-- Optional: Set reply-to to customer's email for easy replies -->
             <field name="reply_to">{{ object.partner_email or object.partner_id.email or 'helpdesk@test.com' }}</field>
