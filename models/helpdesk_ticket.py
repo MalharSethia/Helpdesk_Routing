@@ -92,85 +92,85 @@ class HelpdeskTicket(models.Model):
                 ticket_type = "internal" if self.is_internal_ticket else "external"
                 _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
 
-  def _notify_team_leader(self):
-    """Send notification to team leader using email template"""
-    self.ensure_one()
-    
-    # Check if notifications are enabled
-    notifications_enabled = self.env['ir.config_parameter'].sudo().get_param(
-        'helpdesk_routing.enable_notifications', 'True'
-    ).lower() == 'true'
-    
-    if not notifications_enabled:
-        return
-    
-    if not self.team_id or not self.team_id.user_id:
-        _logger.warning(f"No team leader found for ticket {self.name}")
-        return
+    def _notify_team_leader(self):
+        """Send notification to team leader using email template"""
+        self.ensure_one()
         
-    team_leader = self.team_id.user_id
-    
-    # FORCE SET THE FROM ADDRESS - Get it from system parameters
-    helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
-        'helpdesk_routing.from_email', 'helpdesk@test.com'
-    )
-    
-    # Send email notification using template
-    try:
-        mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template', raise_if_not_found=False)
-        if mail_template:
-            # Create mail record with forced FROM address
-            mail_values = mail_template.generate_email(self.id)
-            
-            # FORCE OVERRIDE the FROM address
-            mail_values.update({
-                'email_from': helpdesk_from_email,
-                'email_to': team_leader.email,
-                'reply_to': self.partner_email or (self.partner_id.email if self.partner_id else helpdesk_from_email),
-            })
-            
-            # DEBUG: Log the actual values being used
-            _logger.info(f"DEBUG - Final mail values:")
-            _logger.info(f"DEBUG - email_from: {mail_values.get('email_from')}")
-            _logger.info(f"DEBUG - email_to: {mail_values.get('email_to')}")
-            _logger.info(f"DEBUG - reply_to: {mail_values.get('reply_to')}")
-            
-            # Create and send the mail
-            mail_record = self.env['mail.mail'].create(mail_values)
-            
-            try:
-                mail_record.send()
-                _logger.info(f"Successfully sent email notification to {team_leader.email} for ticket {self.name}")
-            except Exception as email_error:
-                _logger.error(f"Failed to send email for ticket {self.name}: {email_error}")
-                mail_record.write({'state': 'exception', 'failure_reason': str(email_error)})
-        else:
-            _logger.warning(f"Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
-    except Exception as e:
-        _logger.error(f"Could not send email notification for ticket {self.name}: {e}")
-    
-    # Send in-app notification as fallback
-    try:
-        ticket_type = "Internal" if self.is_internal_ticket else "External"
+        # Check if notifications are enabled
+        notifications_enabled = self.env['ir.config_parameter'].sudo().get_param(
+            'helpdesk_routing.enable_notifications', 'True'
+        ).lower() == 'true'
         
-        plain_message = (
-            f"New {ticket_type.lower()} ticket assigned to your team.\n\n"
-            f"Ticket: {self.name}\n"
-            f"Customer: {self.partner_id.name if self.partner_id else 'Guest'}\n"
-            f"Email: {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}"
+        if not notifications_enabled:
+            return
+        
+        if not self.team_id or not self.team_id.user_id:
+            _logger.warning(f"No team leader found for ticket {self.name}")
+            return
+            
+        team_leader = self.team_id.user_id
+        
+        # FORCE SET THE FROM ADDRESS - Get it from system parameters
+        helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
+            'helpdesk_routing.from_email', 'helpdesk@test.com'
         )
         
-        self.message_post(
-            body=plain_message,
-            subject=f"New {ticket_type} Ticket Assigned",
-            partner_ids=[team_leader.partner_id.id],
-            message_type='notification',
-            subtype_xmlid='mail.mt_note'
-        )
-        _logger.info(f"Sent in-app notification to team leader {team_leader.name} for ticket {self.name}")
-    except Exception as e:
-        _logger.warning(f"Could not send in-app notification for ticket {self.name}: {e}")
-    
+        # Send email notification using template
+        try:
+            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template', raise_if_not_found=False)
+            if mail_template:
+                # Create mail record with forced FROM address
+                mail_values = mail_template.generate_email(self.id)
+                
+                # FORCE OVERRIDE the FROM address
+                mail_values.update({
+                    'email_from': helpdesk_from_email,
+                    'email_to': team_leader.email,
+                    'reply_to': self.partner_email or (self.partner_id.email if self.partner_id else helpdesk_from_email),
+                })
+                
+                # DEBUG: Log the actual values being used
+                _logger.info(f"DEBUG - Final mail values:")
+                _logger.info(f"DEBUG - email_from: {mail_values.get('email_from')}")
+                _logger.info(f"DEBUG - email_to: {mail_values.get('email_to')}")
+                _logger.info(f"DEBUG - reply_to: {mail_values.get('reply_to')}")
+                
+                # Create and send the mail
+                mail_record = self.env['mail.mail'].create(mail_values)
+                
+                try:
+                    mail_record.send()
+                    _logger.info(f"Successfully sent email notification to {team_leader.email} for ticket {self.name}")
+                except Exception as email_error:
+                    _logger.error(f"Failed to send email for ticket {self.name}: {email_error}")
+                    mail_record.write({'state': 'exception', 'failure_reason': str(email_error)})
+            else:
+                _logger.warning(f"Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
+        except Exception as e:
+            _logger.error(f"Could not send email notification for ticket {self.name}: {e}")
+        
+        # Send in-app notification as fallback
+        try:
+            ticket_type = "Internal" if self.is_internal_ticket else "External"
+            
+            plain_message = (
+                f"New {ticket_type.lower()} ticket assigned to your team.\n\n"
+                f"Ticket: {self.name}\n"
+                f"Customer: {self.partner_id.name if self.partner_id else 'Guest'}\n"
+                f"Email: {self.partner_email or (self.partner_id.email if self.partner_id else 'No email')}"
+            )
+            
+            self.message_post(
+                body=plain_message,
+                subject=f"New {ticket_type} Ticket Assigned",
+                partner_ids=[team_leader.partner_id.id],
+                message_type='notification',
+                subtype_xmlid='mail.mt_note'
+            )
+            _logger.info(f"Sent in-app notification to team leader {team_leader.name} for ticket {self.name}")
+        except Exception as e:
+            _logger.warning(f"Could not send in-app notification for ticket {self.name}: {e}")
+
     def write(self, vals):
         result = super().write(vals)
         
