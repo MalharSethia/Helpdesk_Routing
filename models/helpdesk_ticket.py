@@ -93,7 +93,7 @@ class HelpdeskTicket(models.Model):
                 _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
 
     def _notify_team_leader(self):
-        """Simplified notification without SES requirements"""
+        """Send notification to team leader with forced sender address"""
         self.ensure_one()
         
         # Check if notifications are enabled
@@ -108,12 +108,33 @@ class HelpdeskTicket(models.Model):
             
         team_leader = self.team_id.user_id
         
-        # Email notification using standard Odoo email system
+        # Email notification with forced sender
         try:
             mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
             if mail_template:
-                mail_template.send_mail(self.id)
-                _logger.info(f"Sent email notification to {team_leader.email} for ticket {self.name}")
+                # Get the fixed sender email from system parameters or use default
+                forced_sender = self.env['ir.config_parameter'].sudo().get_param(
+                    'helpdesk_routing.notification_sender_email', 'msethia@wavext.io'
+                )
+                
+                # Create mail composition context to force sender
+                mail_values = mail_template.generate_email(self.id, fields=['email_from', 'email_to', 'subject', 'body_html', 'reply_to'])
+                
+                # Force the email_from to our desired sender
+                mail_values['email_from'] = forced_sender
+                
+                # Ensure reply_to is set correctly (customer's email for easy replies)
+                customer_email = self.partner_email or (self.partner_id.email if self.partner_id else None)
+                if customer_email:
+                    mail_values['reply_to'] = customer_email
+                else:
+                    mail_values['reply_to'] = forced_sender
+                
+                # Send the email with forced values
+                mail = self.env['mail.mail'].create(mail_values)
+                mail.send()
+                
+                _logger.info(f"Sent email notification from {forced_sender} to {team_leader.email} for ticket {self.name}")
             else:
                 _logger.warning("Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
         except Exception as e:
