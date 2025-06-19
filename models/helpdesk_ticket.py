@@ -92,34 +92,14 @@ class HelpdeskTicket(models.Model):
                 ticket_type = "internal" if self.is_internal_ticket else "external"
                 _logger.info(f"Assigned ticket {self.name} to {ticket_type} team: {team_to_assign.name}")
 
-    def _get_verified_from_email(self):
-        """Get a verified email address for AWS SES"""
-        # Get the configured FROM email address
-        helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
-            'helpdesk_routing.from_email', 'msethia@wavext.io'
-        )
-        
-        # List of fallback verified emails (add your verified SES emails here)
-        verified_emails = [
-            helpdesk_from_email,
-            'helpdesk@wavext.io',
-            'noreply@wavext.io',
-            # Add other verified emails as needed
-        ]
-        
-        # Return the first configured email (should be verified)
-        return verified_emails[0]
-
     def _notify_team_leader(self):
-        """Send notification to team leader using email template"""
+        """Simplified notification without SES requirements"""
         self.ensure_one()
         
         # Check if notifications are enabled
-        notifications_enabled = self.env['ir.config_parameter'].sudo().get_param(
+        if not self.env['ir.config_parameter'].sudo().get_param(
             'helpdesk_routing.enable_notifications', 'True'
-        ).lower() == 'true'
-        
-        if not notifications_enabled:
+        ).lower() == 'true':
             return
         
         if not self.team_id or not self.team_id.user_id:
@@ -128,61 +108,22 @@ class HelpdeskTicket(models.Model):
             
         team_leader = self.team_id.user_id
         
-        # Get the verified FROM email address
-        verified_from_email = self._get_verified_from_email()
-        
-        # Get the SMTP server to use
-        smtp_server = self.env['ir.mail_server'].sudo().search([
-            ('smtp_host', '=', 'email-smtp.eu-west-1.amazonaws.com')
-        ], limit=1)
-        
-        if not smtp_server:
-            # Fallback to any available SMTP server
-            smtp_server = self.env['ir.mail_server'].sudo().search([
-                ('smtp_host', '!=', False)
-            ], limit=1)
-        
-        # Send email notification using template
+        # Email notification using standard Odoo email system
         try:
-            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template', raise_if_not_found=False)
+            mail_template = self.env.ref('helpdesk_routing.ticket_assignment_email_template')
             if mail_template:
-                # Create mail record with verified FROM address
-                mail_values = mail_template.generate_email(self.id)
-                
-                # Set proper reply-to address (customer's email)
-                customer_email = self.partner_email or (self.partner_id.email if self.partner_id else verified_from_email)
-                
-                # FORCE OVERRIDE with verified email addresses
-                mail_values.update({
-                    'email_from': verified_from_email,  # Use verified email
-                    'email_to': team_leader.email,
-                    'reply_to': customer_email,  # Customer can still be reached via reply-to
-                    'mail_server_id': smtp_server.id if smtp_server else False,
-                })
-                
-                # DEBUG: Log the actual values being used
-                _logger.info(f"DEBUG - Final mail values:")
-                _logger.info(f"DEBUG - email_from: {mail_values.get('email_from')}")
-                _logger.info(f"DEBUG - email_to: {mail_values.get('email_to')}")
-                _logger.info(f"DEBUG - reply_to: {mail_values.get('reply_to')}")
-                _logger.info(f"DEBUG - mail_server_id: {mail_values.get('mail_server_id')}")
-                _logger.info(f"DEBUG - smtp_server: {smtp_server.name if smtp_server else 'None'}")
-                
-                # Create and send the mail
-                mail_record = self.env['mail.mail'].create(mail_values)
-                
-                try:
-                    mail_record.send()
-                    _logger.info(f"Successfully sent email notification to {team_leader.email} for ticket {self.name}")
-                except Exception as email_error:
-                    _logger.error(f"Failed to send email for ticket {self.name}: {email_error}")
-                    mail_record.write({'state': 'exception', 'failure_reason': str(email_error)})
+                mail_template.send_mail(self.id)
+                _logger.info(f"Sent email notification to {team_leader.email} for ticket {self.name}")
             else:
-                _logger.warning(f"Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
+                _logger.warning("Email template 'helpdesk_routing.ticket_assignment_email_template' not found")
         except Exception as e:
             _logger.error(f"Could not send email notification for ticket {self.name}: {e}")
         
-        # Send in-app notification as fallback
+        # In-app notification
+        self._send_in_app_notification(team_leader)
+
+    def _send_in_app_notification(self, team_leader):
+        """Standalone in-app notification method"""
         try:
             ticket_type = "Internal" if self.is_internal_ticket else "External"
             
