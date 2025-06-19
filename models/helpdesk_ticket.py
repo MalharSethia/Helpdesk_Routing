@@ -96,7 +96,7 @@ class HelpdeskTicket(models.Model):
         """Get a verified email address for AWS SES"""
         # Get the configured FROM email address
         helpdesk_from_email = self.env['ir.config_parameter'].sudo().get_param(
-            'helpdesk_routing.from_email', 'helpdesk@wavext.io'
+            'helpdesk_routing.from_email', 'msethia@wavext.io'
         )
         
         # List of fallback verified emails (add your verified SES emails here)
