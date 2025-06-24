@@ -7,8 +7,8 @@
             <field name="inherit_id" ref="base.res_config_settings_view_form"/>
             <field name="priority" eval="5"/>
             <field name="arch" type="xml">
-                <!-- Alternative approach - add to existing app settings -->
-                <xpath expr="//div[@data-key='general_settings']" position="after">
+                <!-- Add to the end of the form sheet -->
+                <xpath expr="//div[hasclass('o_form_sheet')]" position="inside">
                     <div class="app_settings_block" data-string="Helpdesk Routing" string="Helpdesk Routing" data-key="helpdesk_routing">
                         <h2>Helpdesk Routing</h2>
                         <div class="row mt16 o_settings_container">
