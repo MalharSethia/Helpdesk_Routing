@@ -16,22 +16,24 @@
                                 <div class="o_setting_left_pane">
                                 </div>
                                 <div class="o_setting_right_pane">
-                                    <label string="Team Assignment"/>
-                                    <div class="text-muted">
-                                        Configure internal and external team assignments
-                                    </div>
-                                    <div class="content-group">
-                                        <div class="mt16">
-                                            <label for="internal_domains" string="Internal Domains" class="o_light_label"/>
-                                            <field name="internal_domains" placeholder="wavext.io,company.com"/>
+                                    <div class="o_setting_right_pane">
+                                        <div class="o_form_label">Team Assignment</div>
+                                        <div class="text-muted">
+                                            Configure internal and external team assignments
                                         </div>
-                                        <div class="mt16">
-                                            <label for="internal_team_id" string="Internal Team" class="o_light_label"/>
-                                            <field name="internal_team_id"/>
-                                        </div>
-                                        <div class="mt16">
-                                            <label for="external_team_id" string="External Team" class="o_light_label"/>
-                                            <field name="external_team_id"/>
+                                        <div class="content-group">
+                                            <div class="mt16">
+                                                <label for="internal_domains" string="Internal Domains" class="o_light_label"/>
+                                                <field name="internal_domains" placeholder="wavext.io,company.com"/>
+                                            </div>
+                                            <div class="mt16">
+                                                <label for="internal_team_id" string="Internal Team" class="o_light_label"/>
+                                                <field name="internal_team_id"/>
+                                            </div>
+                                            <div class="mt16">
+                                                <label for="external_team_id" string="External Team" class="o_light_label"/>
+                                                <field name="external_team_id"/>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
