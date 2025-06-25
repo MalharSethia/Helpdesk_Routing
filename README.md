@@ -46,7 +46,7 @@ Internal/External Teams
 
 Enable Notifications
 
-Toggle "Send Notifications to Team Leaders" in Settings.
+Make sure to assign a verified internal user in teams
 
 📂 File Structure
 text
